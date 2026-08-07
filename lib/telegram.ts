@@ -20,12 +20,25 @@ export function initTelegram() {
   }
 }
 
-export function getTelegramUser() {
-  try {
-    const { initDataUnsafe } = retrieveLaunchParams();
+type TelegramUser = {
+  id: number;
+  username?: string;
+  first_name?: string;
+  last_name?: string;
+  photo_url?: string;
+};
 
-    return initDataUnsafe.user ?? null;
-  } catch {
+export function getTelegramUser(): TelegramUser | null {
+  try {
+    const launchParams = retrieveLaunchParams() as {
+      initDataUnsafe?: {
+        user?: TelegramUser;
+      };
+    };
+
+    return launchParams.initDataUnsafe?.user ?? null;
+  } catch (error) {
+    console.error("Failed to get Telegram user:", error);
     return null;
   }
 }
