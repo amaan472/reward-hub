@@ -20,7 +20,7 @@ export function initTelegram() {
   }
 }
 
-type TelegramUser = {
+export type TelegramUser = {
   id: number;
   username?: string;
   first_name?: string;
@@ -30,13 +30,16 @@ type TelegramUser = {
 
 export function getTelegramUser(): TelegramUser | null {
   try {
-    const launchParams = retrieveLaunchParams() as {
-      initDataUnsafe?: {
-        user?: TelegramUser;
-      };
-    };
+    const launchParams = retrieveLaunchParams();
 
-    return launchParams.initDataUnsafe?.user ?? null;
+    // TypeScript ke liye safe cast
+    const initDataUnsafe = (launchParams as any)?.initDataUnsafe;
+
+    if (!initDataUnsafe?.user) {
+      return null;
+    }
+
+    return initDataUnsafe.user as TelegramUser;
   } catch (error) {
     console.error("Failed to get Telegram user:", error);
     return null;
