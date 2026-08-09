@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTelegram } from "@/hooks/useTelegram";
 import { registerTelegramUser } from "@/lib/users";
+import Dashboard from "@/components/Dashboard";
 
 type UserData = {
   id: string;
@@ -32,7 +33,7 @@ export default function Home() {
         const savedUser = await registerTelegramUser(user);
         setDbUser(savedUser);
       } catch (err) {
-        console.error(err);
+        console.error("Registration error:", err);
         setError("User registration failed");
       } finally {
         setLoading(false);
@@ -44,57 +45,44 @@ export default function Home() {
 
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
-        <p>Loading RewardHub...</p>
+      <main className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
+        <p className="text-slate-400">Loading RewardHub...</p>
       </main>
     );
   }
 
   if (error) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
-        <p className="text-red-500">{error}</p>
+      <main className="min-h-screen bg-slate-950 flex items-center justify-center text-white px-6">
+        <div className="text-center">
+          <h1 className="text-xl font-bold text-red-400">
+            Something went wrong
+          </h1>
+
+          <p className="mt-2 text-sm text-slate-400">
+            {error}
+          </p>
+        </div>
       </main>
     );
   }
 
   if (!user || !dbUser) {
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center gap-4">
+      <main className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white px-6">
         <h1 className="text-3xl font-bold">RewardHub</h1>
-        <p>Open RewardHub from Telegram.</p>
+
+        <p className="mt-3 text-slate-400 text-center">
+          Open RewardHub from Telegram to continue.
+        </p>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center gap-4 p-6">
-      <h1 className="text-3xl font-bold">RewardHub</h1>
-
-      {dbUser.photo_url && (
-        <img
-          src={dbUser.photo_url}
-          alt="Profile"
-          className="w-20 h-20 rounded-full"
-        />
-      )}
-
-      <h2 className="text-2xl font-semibold">
-        Welcome, {dbUser.first_name}!
-      </h2>
-
-      <p>
-        Username:{" "}
-        {dbUser.username ? `@${dbUser.username}` : "Not available"}
-      </p>
-
-      <p>
-        Telegram ID: {dbUser.telegram_id}
-      </p>
-
-      <div className="text-xl font-bold">
-        🪙 Coins: {dbUser.coins}
-      </div>
-    </main>
+    <Dashboard
+      firstName={dbUser.first_name}
+      coins={dbUser.coins}
+    />
   );
 }
