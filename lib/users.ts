@@ -23,8 +23,18 @@ export async function registerTelegramUser(user: TelegramUser) {
 
   if (error) {
     console.error("User registration failed:", error);
+
+    console.error("Supabase error details:", {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    });
+
     throw error;
   }
+
+  console.log("User registered successfully:", data);
 
   return data;
 }
