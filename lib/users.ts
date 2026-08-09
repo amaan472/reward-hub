@@ -4,6 +4,8 @@ import { supabase } from "@/lib/supabase";
 import type { TelegramUser } from "@/lib/telegram";
 
 export async function registerTelegramUser(user: TelegramUser) {
+  console.log("Registering Telegram user:", user);
+
   const { data, error } = await supabase
     .from("users")
     .upsert(
@@ -22,19 +24,16 @@ export async function registerTelegramUser(user: TelegramUser) {
     .single();
 
   if (error) {
-    console.error("User registration failed:", error);
-
-    console.error("Supabase error details:", {
-      message: error.message,
-      details: error.details,
-      hint: error.hint,
-      code: error.code,
-    });
+    console.error("SUPABASE ERROR MESSAGE:", error.message);
+    console.error("SUPABASE ERROR DETAILS:", error.details);
+    console.error("SUPABASE ERROR HINT:", error.hint);
+    console.error("SUPABASE ERROR CODE:", error.code);
+    console.error("FULL SUPABASE ERROR:", error);
 
     throw error;
   }
 
-  console.log("User registered successfully:", data);
+  console.log("USER SAVED SUCCESSFULLY:", data);
 
   return data;
 }
