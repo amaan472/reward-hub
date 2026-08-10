@@ -1,45 +1,48 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import CoinBalance from "@/components/CoinBalance";
 import TaskCard from "@/components/TaskCard";
 import BottomNav from "@/components/BottomNav";
+import { getTasks, type Task } from "@/lib/tasks";
 
 type DashboardProps = {
   firstName: string;
   coins: number;
 };
 
-const tasks = [
-  {
-    id: 1,
-    title: "Daily Check-in",
-    description: "Complete your daily check-in",
-    reward: 100,
-    type: "checkin" as const,
-  },
-  {
-    id: 2,
-    title: "Visit RewardHub",
-    description: "Open RewardHub and claim your daily reward",
-    reward: 50,
-    type: "visit" as const,
-  },
-  {
-    id: 3,
-    title: "Daily Challenge",
-    description: "Complete today's challenge",
-    reward: 200,
-    type: "challenge" as const,
-  },
-];
-
 export default function Dashboard({
   firstName,
   coins,
 }: DashboardProps) {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState(true);
+  const [taskError, setTaskError] = useState("");
+
+  useEffect(() => {
+    async function loadTasks() {
+      try {
+        setLoadingTasks(true);
+        setTaskError("");
+
+        const data = await getTasks();
+
+        setTasks(data);
+      } catch (error) {
+        console.error("Failed to load tasks:", error);
+        setTaskError("Unable to load tasks");
+      } finally {
+        setLoadingTasks(false);
+      }
+    }
+
+    loadTasks();
+  }, []);
+
   return (
     <main className="min-h-screen bg-white pb-28 text-slate-900">
       <div className="mx-auto w-full max-w-md px-4 pt-6">
+
         {/* Header */}
         <header className="mb-7">
           <div className="flex items-start justify-between">
@@ -57,7 +60,6 @@ export default function Dashboard({
               </p>
             </div>
 
-            {/* Profile Circle */}
             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xl font-bold text-white shadow-lg shadow-blue-600/20">
               {firstName.charAt(0).toUpperCase()}
             </div>
@@ -67,7 +69,7 @@ export default function Dashboard({
         {/* Balance */}
         <CoinBalance coins={coins} />
 
-        {/* Daily Tasks */}
+        {/* Tasks */}
         <section className="mt-8">
           <div className="mb-5 flex items-end justify-between">
             <div>
@@ -85,17 +87,53 @@ export default function Dashboard({
             </span>
           </div>
 
-          <div className="space-y-4">
-            {tasks.map((task) => (
-              <TaskCard
-                key={task.id}
-                title={task.title}
-                description={task.description}
-                reward={task.reward}
-                type={task.type}
-              />
-            ))}
-          </div>
+          {/* Loading */}
+          {loadingTasks && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+              <p className="text-sm text-slate-500">
+                Loading tasks...
+              </p>
+            </div>
+          )}
+
+          {/* Error */}
+          {!loadingTasks && taskError && (
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center">
+              <p className="text-sm font-medium text-red-600">
+                {taskError}
+              </p>
+            </div>
+          )}
+
+          {/* No Tasks */}
+          {!loadingTasks && !taskError && tasks.length === 0 && (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center">
+              <p className="text-sm text-slate-500">
+                No tasks available right now.
+              </p>
+            </div>
+          )}
+
+          {/* Task List */}
+          {!loadingTasks && !taskError && tasks.length > 0 && (
+            <div className="space-y-4">
+              {tasks.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  title={task.title}
+                  description={task.description ?? ""}
+                  reward={task.reward}
+                  type={
+                    task.task_type === "visit"
+                      ? "visit"
+                      : task.task_type === "challenge"
+                        ? "challenge"
+                        : "checkin"
+                  }
+                />
+              ))}
+            </div>
+          )}
         </section>
       </div>
 
