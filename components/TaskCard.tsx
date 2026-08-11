@@ -22,8 +22,8 @@ function TaskIcon({
   if (type === "checkin") {
     return (
       <svg
-        width="32"
-        height="32"
+        width="30"
+        height="30"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -43,8 +43,8 @@ function TaskIcon({
   if (type === "visit") {
     return (
       <svg
-        width="32"
-        height="32"
+        width="30"
+        height="30"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -61,8 +61,8 @@ function TaskIcon({
 
   return (
     <svg
-      width="32"
-      height="32"
+      width="30"
+      height="30"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -101,20 +101,34 @@ export default function TaskCard({
 
     setMessage("");
 
-    // Task URL open karo
-    if (taskUrl) {
-      window.open(taskUrl, "_blank");
-    }
-
-    // Telegram initData
-    const initData = getTelegramInitData();
-
-    if (!initData) {
-      setMessage("Please open this app from Telegram.");
-      return;
-    }
-
     try {
+      const telegram = window.Telegram?.WebApp;
+
+      if (!telegram) {
+        setMessage("Please open the app inside Telegram.");
+        return;
+      }
+
+      telegram.ready();
+
+      /*
+       * Task URL open karo.
+       *
+       * Current Telegram TypeScript definition me openLink available
+       * nahi hai, isliye direct location navigation use kar rahe hain.
+       */
+      if (taskUrl) {
+        window.location.href = taskUrl;
+        return;
+      }
+
+      const initData = getTelegramInitData();
+
+      if (!initData) {
+        setMessage("Telegram user data not found.");
+        return;
+      }
+
       setLoading(true);
 
       const response = await fetch("/api/tasks/complete", {
@@ -130,24 +144,44 @@ export default function TaskCard({
 
       const result = await response.json();
 
-      if (!response.ok || !result.success) {
-        if (result.error === "ALREADY_COMPLETED") {
-          setIsCompleted(true);
-          setMessage("Already completed.");
-        } else {
-          setMessage("Task could not be completed.");
-        }
+      console.log("TASK COMPLETE RESPONSE:", result);
 
+      if (result.error === "ALREADY_COMPLETED") {
+        setIsCompleted(true);
+        setMessage("Already completed.");
+        return;
+      }
+
+      if (result.error === "INVALID_TELEGRAM_DATA") {
+        setMessage("Telegram verification failed.");
+        return;
+      }
+
+      if (result.error === "USER_NOT_FOUND") {
+        setMessage("User account not found.");
+        return;
+      }
+
+      if (result.error === "TASK_NOT_FOUND") {
+        setMessage("Task is no longer available.");
+        return;
+      }
+
+      if (!response.ok || !result.success) {
+        setMessage("Task could not be completed.");
         return;
       }
 
       setIsCompleted(true);
-      setMessage(`+${result.reward} coins added!`);
 
-      onCompleted?.(id, result.reward);
+      setMessage(
+        `+${Number(result.reward).toLocaleString("en-IN")} coins added!`
+      );
+
+      onCompleted?.(id, Number(result.reward));
     } catch (error) {
-      console.error("Task completion error:", error);
-      setMessage("Something went wrong.");
+      console.error("TASK START ERROR:", error);
+      setMessage("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -156,6 +190,7 @@ export default function TaskCard({
   return (
     <div className="w-full rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_4px_18px_rgba(15,23,42,0.06)]">
       <div className="flex items-center gap-4">
+
         <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
           <TaskIcon type={type} />
         </div>
@@ -175,7 +210,7 @@ export default function TaskCard({
             </span>
 
             <span className="text-sm font-bold text-blue-600">
-              +{reward.toLocaleString("en-IN")}
+              +{Number(reward).toLocaleString("en-IN")}
             </span>
 
             <span className="text-xs text-slate-400">
@@ -184,7 +219,13 @@ export default function TaskCard({
           </div>
 
           {message && (
-            <p className="mt-2 text-xs font-medium text-blue-600">
+            <p
+              className={`mt-2 text-xs font-semibold ${
+                isCompleted
+                  ? "text-green-600"
+                  : "text-blue-600"
+              }`}
+            >
               {message}
             </p>
           )}
@@ -196,7 +237,7 @@ export default function TaskCard({
           onClick={handleStart}
           className={`shrink-0 rounded-xl px-4 py-2.5 text-sm font-bold transition ${
             isCompleted
-              ? "cursor-not-allowed bg-slate-100 text-slate-400"
+              ? "cursor-not-allowed bg-green-50 text-green-600"
               : loading
                 ? "cursor-wait bg-blue-300 text-white"
                 : "bg-blue-600 text-white shadow-md shadow-blue-600/20 hover:bg-blue-700 active:scale-95"
