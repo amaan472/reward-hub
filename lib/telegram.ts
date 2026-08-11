@@ -8,9 +8,10 @@ export type TelegramUser = {
   photo_url?: string;
 };
 
-
 export function initTelegram() {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined") {
+    return;
+  }
 
   const telegram = window.Telegram?.WebApp;
 
@@ -25,7 +26,6 @@ export function initTelegram() {
   console.log("Telegram WebApp Ready");
 }
 
-
 export function getTelegramUser(): TelegramUser | null {
   if (typeof window === "undefined") {
     return null;
@@ -38,17 +38,28 @@ export function getTelegramUser(): TelegramUser | null {
     return null;
   }
 
-
   const user = telegram.initDataUnsafe?.user;
 
-
   console.log("Telegram User:", user);
-
 
   if (!user) {
     return null;
   }
 
-
   return user as TelegramUser;
+}
+
+export function getTelegramInitData(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const telegram = window.Telegram?.WebApp;
+
+  if (!telegram) {
+    console.log("Telegram WebApp missing");
+    return null;
+  }
+
+  return telegram.initData || null;
 }

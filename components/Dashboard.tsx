@@ -13,11 +13,16 @@ type DashboardProps = {
 
 export default function Dashboard({
   firstName,
-  coins,
+  coins: initialCoins,
 }: DashboardProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [coins, setCoins] = useState(initialCoins);
   const [loadingTasks, setLoadingTasks] = useState(true);
   const [taskError, setTaskError] = useState("");
+
+  useEffect(() => {
+    setCoins(initialCoins);
+  }, [initialCoins]);
 
   useEffect(() => {
     async function loadTasks() {
@@ -39,6 +44,16 @@ export default function Dashboard({
     loadTasks();
   }, []);
 
+  function handleTaskCompleted(taskId: string, reward: number) {
+    setCoins((currentCoins) => currentCoins + reward);
+
+    setTasks((currentTasks) =>
+      currentTasks.filter((task) => task.id !== taskId)
+    );
+  }
+
+  const initial = firstName?.charAt(0).toUpperCase() || "R";
+
   return (
     <main className="min-h-screen bg-white pb-28 text-slate-900">
       <div className="mx-auto w-full max-w-md px-4 pt-6">
@@ -52,7 +67,7 @@ export default function Dashboard({
               </p>
 
               <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900">
-                {firstName}
+                {firstName || "User"}
               </h1>
 
               <p className="mt-2 text-sm text-slate-500">
@@ -60,16 +75,17 @@ export default function Dashboard({
               </p>
             </div>
 
+            {/* Profile Circle */}
             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xl font-bold text-white shadow-lg shadow-blue-600/20">
-              {firstName.charAt(0).toUpperCase()}
+              {initial}
             </div>
           </div>
         </header>
 
-        {/* Balance */}
+        {/* Coin Balance */}
         <CoinBalance coins={coins} />
 
-        {/* Tasks */}
+        {/* Daily Tasks */}
         <section className="mt-8">
           <div className="mb-5 flex items-end justify-between">
             <div>
@@ -90,6 +106,8 @@ export default function Dashboard({
           {/* Loading */}
           {loadingTasks && (
             <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+              <div className="mx-auto mb-3 h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+
               <p className="text-sm text-slate-500">
                 Loading tasks...
               </p>
@@ -99,17 +117,33 @@ export default function Dashboard({
           {/* Error */}
           {!loadingTasks && taskError && (
             <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center">
-              <p className="text-sm font-medium text-red-600">
+              <p className="text-sm font-semibold text-red-600">
                 {taskError}
               </p>
+
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="mt-3 rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white"
+              >
+                Retry
+              </button>
             </div>
           )}
 
           {/* No Tasks */}
           {!loadingTasks && !taskError && tasks.length === 0 && (
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center">
-              <p className="text-sm text-slate-500">
-                No tasks available right now.
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-7 text-center">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-2xl">
+                ✓
+              </div>
+
+              <h3 className="mt-4 text-base font-bold text-slate-900">
+                All tasks completed!
+              </h3>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Come back later for new tasks.
               </p>
             </div>
           )}
@@ -120,9 +154,11 @@ export default function Dashboard({
               {tasks.map((task) => (
                 <TaskCard
                   key={task.id}
+                  id={task.id}
                   title={task.title}
                   description={task.description ?? ""}
                   reward={task.reward}
+                  taskUrl={task.task_url}
                   type={
                     task.task_type === "visit"
                       ? "visit"
@@ -130,6 +166,7 @@ export default function Dashboard({
                         ? "challenge"
                         : "checkin"
                   }
+                  onCompleted={handleTaskCompleted}
                 />
               ))}
             </div>

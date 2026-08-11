@@ -1,11 +1,17 @@
 "use client";
 
+import { useState } from "react";
+import { getTelegramInitData } from "@/lib/telegram";
+
 type TaskCardProps = {
+  id: string;
   title: string;
   description: string;
   reward: number;
+  taskUrl?: string | null;
   completed?: boolean;
   type?: "checkin" | "visit" | "challenge";
+  onCompleted?: (taskId: string, reward: number) => void;
 };
 
 function TaskIcon({
@@ -75,21 +81,85 @@ function TaskIcon({
 }
 
 export default function TaskCard({
+  id,
   title,
   description,
   reward,
+  taskUrl,
   completed = false,
   type = "checkin",
+  onCompleted,
 }: TaskCardProps) {
+  const [loading, setLoading] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(completed);
+  const [message, setMessage] = useState("");
+
+  async function handleStart() {
+    if (loading || isCompleted) {
+      return;
+    }
+
+    setMessage("");
+
+    // Task URL open karo
+    if (taskUrl) {
+      window.open(taskUrl, "_blank");
+    }
+
+    // Telegram initData
+    const initData = getTelegramInitData();
+
+    if (!initData) {
+      setMessage("Please open this app from Telegram.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const response = await fetch("/api/tasks/complete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          taskId: id,
+          initData,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        if (result.error === "ALREADY_COMPLETED") {
+          setIsCompleted(true);
+          setMessage("Already completed.");
+        } else {
+          setMessage("Task could not be completed.");
+        }
+
+        return;
+      }
+
+      setIsCompleted(true);
+      setMessage(`+${result.reward} coins added!`);
+
+      onCompleted?.(id, result.reward);
+    } catch (error) {
+      console.error("Task completion error:", error);
+      setMessage("Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
-    <div className="w-full rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_4px_18px_rgba(15,23,42,0.06)] transition hover:shadow-[0_6px_22px_rgba(37,99,235,0.10)]">
+    <div className="w-full rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_4px_18px_rgba(15,23,42,0.06)]">
       <div className="flex items-center gap-4">
-        {/* Task Icon */}
         <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
           <TaskIcon type={type} />
         </div>
 
-        {/* Task Content */}
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-base font-bold text-slate-900">
             {title}
@@ -99,7 +169,6 @@ export default function TaskCard({
             {description}
           </p>
 
-          {/* Reward */}
           <div className="mt-3 flex items-center gap-2">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
               ₹
@@ -113,19 +182,31 @@ export default function TaskCard({
               Coins
             </span>
           </div>
+
+          {message && (
+            <p className="mt-2 text-xs font-medium text-blue-600">
+              {message}
+            </p>
+          )}
         </div>
 
-        {/* Start Button */}
         <button
           type="button"
-          disabled={completed}
+          disabled={loading || isCompleted}
+          onClick={handleStart}
           className={`shrink-0 rounded-xl px-4 py-2.5 text-sm font-bold transition ${
-            completed
+            isCompleted
               ? "cursor-not-allowed bg-slate-100 text-slate-400"
-              : "bg-blue-600 text-white shadow-md shadow-blue-600/20 hover:bg-blue-700 active:scale-95"
+              : loading
+                ? "cursor-wait bg-blue-300 text-white"
+                : "bg-blue-600 text-white shadow-md shadow-blue-600/20 hover:bg-blue-700 active:scale-95"
           }`}
         >
-          {completed ? "Done" : "Start"}
+          {isCompleted
+            ? "Done"
+            : loading
+              ? "Checking..."
+              : "Start"}
         </button>
       </div>
     </div>
