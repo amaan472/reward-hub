@@ -306,23 +306,15 @@ export default function TaskCard({
 
         {/* Start Button */}
         <button
-          type="button"
-          disabled={loading || isCompleted}
-          onClick={handleStart}
-          className={`shrink-0 rounded-xl px-4 py-2.5 text-sm font-bold transition ${
-            isCompleted
-              ? "cursor-not-allowed bg-green-50 text-green-600"
-              : loading
-                ? "cursor-wait bg-blue-300 text-white"
-                : "bg-blue-600 text-white shadow-md shadow-blue-600/20 hover:bg-blue-700 active:scale-95"
-          }`}
-        >
-          {isCompleted
-            ? "Done"
-            : loading
-              ? "Checking..."
-              : "Start"}
-        </button>
+  type="button"
+  onClick={() => {
+    console.log("🔥 START BUTTON CLICKED");
+    alert("BUTTON WORKING");
+  }}
+  className="relative z-50 shrink-0 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white"
+>
+  Start
+</button>
 
       </div>
     </div>
