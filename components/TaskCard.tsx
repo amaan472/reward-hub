@@ -85,7 +85,6 @@ export default function TaskCard({
   title,
   description,
   reward,
-  taskUrl,
   completed = false,
   type = "checkin",
   onCompleted,
@@ -102,86 +101,152 @@ export default function TaskCard({
     setMessage("");
 
     try {
+      /*
+       * Telegram WebApp check
+       */
       const telegram = window.Telegram?.WebApp;
 
       if (!telegram) {
+        console.error("Telegram WebApp not found");
         setMessage("Please open the app inside Telegram.");
         return;
       }
 
+      /*
+       * Telegram WebApp ready
+       */
       telegram.ready();
 
       /*
-       * Task URL open karo.
-       *
-       * Current Telegram TypeScript definition me openLink available
-       * nahi hai, isliye direct location navigation use kar rahe hain.
+       * Debug information
        */
-      if (taskUrl) {
-        window.location.href = taskUrl;
-        return;
-      }
+      console.log("========== TASK DEBUG ==========");
+      console.log("Task ID:", id);
+      console.log("Task title:", title);
+      console.log("Telegram WebApp:", telegram);
+      console.log("Telegram initData exists:", !!telegram.initData);
+      console.log(
+        "Telegram user:",
+        telegram.initDataUnsafe?.user
+      );
+      console.log("================================");
 
+      /*
+       * Telegram initData
+       */
       const initData = getTelegramInitData();
 
       if (!initData) {
-        setMessage("Telegram user data not found.");
+        console.error("Telegram initData missing");
+        setMessage("Telegram verification data missing.");
         return;
       }
 
+      /*
+       * Loading
+       */
       setLoading(true);
+      setMessage("Checking task...");
 
+      /*
+       * Complete task API
+       */
       const response = await fetch("/api/tasks/complete", {
         method: "POST",
+
         headers: {
           "Content-Type": "application/json",
         },
+
         body: JSON.stringify({
           taskId: id,
           initData,
         }),
       });
 
+      /*
+       * JSON response
+       */
       const result = await response.json();
 
-      console.log("TASK COMPLETE RESPONSE:", result);
+      console.log("========== API RESPONSE ==========");
+      console.log("Status:", response.status);
+      console.log("Response:", result);
+      console.log("==================================");
 
+      /*
+       * Already completed
+       */
       if (result.error === "ALREADY_COMPLETED") {
         setIsCompleted(true);
         setMessage("Already completed.");
         return;
       }
 
+      /*
+       * Telegram verification failed
+       */
       if (result.error === "INVALID_TELEGRAM_DATA") {
         setMessage("Telegram verification failed.");
         return;
       }
 
+      /*
+       * User not found
+       */
       if (result.error === "USER_NOT_FOUND") {
         setMessage("User account not found.");
         return;
       }
 
+      /*
+       * Task not found
+       */
       if (result.error === "TASK_NOT_FOUND") {
-        setMessage("Task is no longer available.");
+        setMessage("Task not found.");
         return;
       }
 
+      /*
+       * Any other API error
+       */
       if (!response.ok || !result.success) {
-        setMessage("Task could not be completed.");
+        console.error("Task API failed:", result);
+
+        setMessage(
+          result.error || "Task could not be completed."
+        );
+
         return;
       }
+
+      /*
+       * SUCCESS
+       */
+      const earnedReward = Number(result.reward ?? reward);
 
       setIsCompleted(true);
 
       setMessage(
-        `+${Number(result.reward).toLocaleString("en-IN")} coins added!`
+        `+${earnedReward.toLocaleString("en-IN")} coins added!`
       );
 
-      onCompleted?.(id, Number(result.reward));
+      /*
+       * Dashboard ko notify
+       */
+      onCompleted?.(id, earnedReward);
+
+      console.log(
+        "TASK COMPLETED SUCCESSFULLY:",
+        id,
+        earnedReward
+      );
     } catch (error) {
       console.error("TASK START ERROR:", error);
-      setMessage("Something went wrong. Please try again.");
+
+      setMessage(
+        "Something went wrong. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -191,11 +256,14 @@ export default function TaskCard({
     <div className="w-full rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_4px_18px_rgba(15,23,42,0.06)]">
       <div className="flex items-center gap-4">
 
+        {/* Task Icon */}
         <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
           <TaskIcon type={type} />
         </div>
 
+        {/* Task Content */}
         <div className="min-w-0 flex-1">
+
           <h3 className="truncate text-base font-bold text-slate-900">
             {title}
           </h3>
@@ -204,7 +272,9 @@ export default function TaskCard({
             {description}
           </p>
 
+          {/* Reward */}
           <div className="mt-3 flex items-center gap-2">
+
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
               ₹
             </span>
@@ -216,8 +286,10 @@ export default function TaskCard({
             <span className="text-xs text-slate-400">
               Coins
             </span>
+
           </div>
 
+          {/* Status Message */}
           {message && (
             <p
               className={`mt-2 text-xs font-semibold ${
@@ -229,8 +301,10 @@ export default function TaskCard({
               {message}
             </p>
           )}
+
         </div>
 
+        {/* Start Button */}
         <button
           type="button"
           disabled={loading || isCompleted}
@@ -249,6 +323,7 @@ export default function TaskCard({
               ? "Checking..."
               : "Start"}
         </button>
+
       </div>
     </div>
   );
